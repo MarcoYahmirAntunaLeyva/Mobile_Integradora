@@ -1,0 +1,5 @@
+//Preparar la app
+nmp install
+
+//Iniciar la app
+npx expo start
