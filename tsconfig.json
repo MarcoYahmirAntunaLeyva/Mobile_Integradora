@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "jsx": "react-native",
+    "target": "esnext",
+    "module": "esnext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "types": ["@types/react", "@types/react-native"]  // añade tipos explícitos
+  },
+  "include": [
+    "env.d.ts",      // 👈 incluye el archivo de tipos para @env
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
