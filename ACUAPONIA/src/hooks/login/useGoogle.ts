@@ -1,0 +1,1 @@
+   npm install @react-native-google-signin/google-signin

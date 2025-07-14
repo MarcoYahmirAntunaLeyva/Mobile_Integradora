@@ -1,0 +1,9 @@
+   /src
+     /hooks
+       /auth
+         useAuth.ts
+         useGoogleSignIn.ts
+     /components
+       AuthScreen.tsx
+     /navigation
+       AppNavigator.tsx

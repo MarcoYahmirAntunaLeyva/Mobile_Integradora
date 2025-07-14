@@ -1,0 +1,10 @@
+   /src
+     /hooks
+       /login
+         useAuth.ts
+     /components
+       /Auth
+         GoogleSignInButton.tsx
+     /screens
+       LoginScreen.tsx
+       RegisterScreen.tsx
