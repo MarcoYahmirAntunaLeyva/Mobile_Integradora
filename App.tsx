@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import TabNavigator from './src/navigation/TabNavigator';
 import LoginScreen from './src/screens/LoginScreen';
+// import DrawerNavigator from './src/navigation/DrawerNavigator.js';
 
 const Stack = createStackNavigator();
 

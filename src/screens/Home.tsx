@@ -1,255 +1,138 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Dimensions } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native'; // Import navigation hook
-
-const data = [
-  { ph: 7.0, value: "70%" },
-  { ph: 6.8, value: "68%" },
-  { ph: 7.2, value: "72%" },
-  { ph: 6.9, value: "69%" },
-];
-
-// Combined data structure for FlatList
-const screenData = [
-  { type: "header", key: "header" },
-  { type: "image", key: "image" },
-  { type: "ph", key: "ph" },
-  { type: "progress", key: "progress" },
-  { type: "metrics", key: "metrics" },
-  ...data.map((item, index) => ({ type: "phData", ...item, key: `phData-${index}` })),
-  { type: "seeMore", key: "seeMore" },
-  { type: "logout", key: "logout" }, // Added logout button
-];
+import React, { useState, useEffect } from "react";
+import { View, Text, Image, ScrollView} from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import styles from "../styles/homeStyles";
+import { Card } from "react-native-paper";
+import Camera from "../components/camera";
 
 const Home = () => {
-  const navigation = useNavigation(); // Initialize navigation
+  const navigation = useNavigation();
+  const [sensorData, setSensorData] = useState({
+    latest: { ph: 0, temperature: 0, conductivity: 0, level: 0 },
+    history: []
+  });
 
-  // Logout function
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('accessToken'); // Remove token
-      navigation.replace('Login'); // Navigate to Login screen
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    }
-  };
+  // Fetch data from the backend with polling
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch latest register
+        const latestResponse = await fetch('https://hostbackend-production-06a9.up.railway.app/api/labView/lastRegister', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const latestResult = await latestResponse.json();
+        
+        // Fetch last 5 registers for history
+        const historyResponse = await fetch('https://hostbackend-production-06a9.up.railway.app/api/labView/allRegisters?limit=5', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const historyResult = await historyResponse.json();
 
-  const renderItem = ({ item }) => {
-    switch (item.type) {
-      case "header":
-        return (
-          <View style={styles.header}>
-            <Text style={styles.headerText}>SUUDAI</Text>
-          </View>
-        );
-      case "image":
-        return (
-          <Image
-            style={styles.topImage}
-            source={{
-              uri: "https://www.naturespath.com/wp-content/uploads/2020/01/Indoor-Garden.jpg",
-            }}
-          />
-        );
-      case "ph":
-        return (
-          <View style={styles.phContainer}>
-            <Text style={styles.phLabel}>PH Level</Text>
-            <Text style={styles.phPercent}>75%</Text>
-          </View>
-        );
-      case "progress":
-        return (
-          <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
-          </View>
-        );
-      case "metrics":
-        return (
-          <View style={styles.metricsContainer}>
-            <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>Temperature</Text>
-              <Text style={styles.metricValue}>24°C</Text>
-            </View>
-            <View style={styles.metricBox}>
-              <Text style={styles.metricLabel}>Humidity</Text>
-              <Text style={styles.metricValue}>65%</Text>
-            </View>
-          </View>
-        );
-      case "phData":
-        return (
-          <View style={styles.listRow}>
-            <Text style={styles.listText}>PH: {item.ph}</Text>
-            <Text style={styles.listValue}>{item.value}</Text>
-          </View>
-        );
-      case "seeMore":
-        return (
-          <TouchableOpacity style={styles.seeMoreButton}>
-            <Text style={styles.seeMoreText}>See More</Text>
-          </TouchableOpacity>
-        );
-      case "logout":
-        return (
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Cerrar Sesión</Text>
-          </TouchableOpacity>
-        );
-      default:
-        return null;
-    }
+        if (latestResult.data && latestResult.data.sensors && latestResult.data.sensors.length > 0) {
+          const latestSensor = latestResult.data.sensors[0];
+          setSensorData({
+            latest: {
+              ph: latestSensor.ph || 0,
+              temperature: latestSensor.temperature || 0,
+              conductivity: latestSensor.conductivity || 0,
+              level: latestSensor.level || 0
+            },
+            history: historyResult.data || []
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching sensor data:', error);
+      }
+    };
+
+    // Fetch data immediately
+    fetchData();
+    
+    // Set up polling every second
+    const intervalId = setInterval(fetchData, 1000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Function to format time from date
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={screenData}
-        keyExtractor={(item) => item.key}
-        renderItem={renderItem}
-        contentContainerStyle={styles.contentContainer}
-      />
-    </View>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>SUUDAI</Text>
+      </View>
+
+      {/* Image */}
+      <Card style={styles.card}>
+        <Camera />
+      </Card>
+
+      {/* PH Level */}
+      <View style={styles.phContainer}>
+        <Text style={styles.phLabel}>Level</Text>
+        
+      </View>
+
+      {/* Progress Bar */}
+      <View style={styles.progressBar}>
+        <View style={[
+          styles.progressFill,
+          { width: `${(sensorData.latest.level / 1) * 25}%` }
+        ]} />
+      </View>
+
+      {/* Metrics */}
+      <View style={styles.metricsContainer}>
+        <View style={styles.metricBox}>
+          <Text style={styles.metricLabel}>Temperature</Text>
+          <Text style={styles.metricValue}>{Math.round(sensorData.latest.temperature)}°C</Text>
+        </View>
+        <View style={styles.metricBox}>
+          <Text style={styles.metricLabel}>Conductivity</Text>
+          <Text style={styles.metricValue}>{Math.round(sensorData.latest.conductivity)} µs</Text>
+        </View>
+      </View>
+
+      {/* History Table */}
+      <View style={styles.tableContainer}>
+        {/* Table Header */}
+        <View style={styles.tableHeader}>
+          <Text style={styles.headerCell}>Time</Text>
+          <Text style={styles.headerCell}>Temp</Text>
+          <Text style={styles.headerCell}>Cond.</Text>
+          <Text style={styles.headerCell}>PH</Text>
+        </View>
+
+        {/* Table Rows - Limited to last 5 records */}
+        {sensorData.history.slice(0, 5).map((item, index) => {
+          const sensor = item.sensors && item.sensors.length > 0 ? item.sensors[0] : null;
+          return (
+            <View key={`row-${index}`} style={[
+              styles.tableRow,
+              index % 2 === 0 ? styles.evenRow : styles.oddRow
+            ]}>
+              <Text style={styles.tableCell}>{formatTime(item.createDate)}</Text>
+              <Text style={styles.tableCell}>{sensor ? Math.round(sensor.temperature) : 0}°C</Text>
+              <Text style={styles.tableCell}>{sensor ? Math.round(sensor.conductivity) : 0} µs</Text>
+              <Text style={styles.tableCell}>{sensor ? Math.round(sensor.ph) : 0}%</Text>
+            </View>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 };
-
-const { width } = Dimensions.get("window");
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  contentContainer: {
-    paddingBottom: 20,
-  },
-  header: {
-    backgroundColor: "#2ECC71",
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  headerText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  topImage: {
-    width: "100%",
-    height: 150,
-  },
-  phContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 20,
-    marginTop: 20,
-    alignItems: "center",
-  },
-  phLabel: {
-    fontSize: 18,
-    color: "#333",
-    fontWeight: "500",
-  },
-  phPercent: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#2ECC71",
-  },
-  progressBar: {
-    height: 10,
-    backgroundColor: "#e0e0e0",
-    borderRadius: 5,
-    marginHorizontal: 20,
-    marginVertical: 10,
-    overflow: "hidden",
-  },
-  progressFill: {
-    width: "75%",
-    height: "100%",
-    backgroundColor: "#2ECC71",
-    borderRadius: 5,
-  },
-  metricsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 20,
-  },
-  metricBox: {
-    backgroundColor: "#A5D6A7",
-    borderRadius: 15,
-    padding: 15,
-    width: width * 0.4,
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  metricLabel: {
-    fontSize: 16,
-    color: "#fff",
-    textAlign: "center",
-  },
-  metricValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 5,
-  },
-  listRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 20,
-    marginVertical: 8,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  listText: {
-    fontSize: 16,
-    color: "#2ECC71",
-  },
-  listValue: {
-    fontSize: 16,
-    color: "#2ECC71",
-  },
-  seeMoreButton: {
-    backgroundColor: "#2ECC71",
-    alignSelf: "center",
-    marginVertical: 20,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  seeMoreText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  logoutButton: {
-    backgroundColor: "#FF3B30", // Red color for logout to differentiate from See More
-    alignSelf: "center",
-    marginVertical: 10,
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  logoutText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-});
 
 export default Home;

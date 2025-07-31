@@ -1,55 +1,132 @@
-// import React, { useState, useEffect } from 'react';
-// import { View, StyleSheet, Text, Button } from 'react-native';
-// import { BarCodeScanner } from 'expo-barcode-scanner';
+import React, { useEffect, useState } from "react";
+import {
+  Text,
+  View,
+  StyleSheet,
+  Alert,
+  Dimensions,
+  ActivityIndicator,
+} from "react-native";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { linkTokenToQR } from "../hooks/qr";
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// export default function ScanQr() {
-//   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-//   const [scanned, setScanned] = useState(false);
+const { width } = Dimensions.get("window");
+const FRAME_SIZE = width * 0.7;
 
-//   useEffect(() => {
-//     const getBarCodeScannerPermissions = async () => {
-//       const { status } = await BarCodeScanner.requestPermissionsAsync();
-//       setHasPermission(status === 'granted');
-//     };
+export default function SesionQr() {
+  const navigation = useNavigation();
+  const [permission, requestPermission] = useCameraPermissions();
+  const [scanned, setScanned] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
+  const [qrContent, setQrContent] = useState<string | null>(null);
 
-//     getBarCodeScannerPermissions();
-//   }, []);
+  useEffect(() => {
+    if (!permission?.granted) requestPermission();
+  }, []);
 
-//   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-//     setScanned(true);
-//     alert(`Código escaneado!\nTipo: ${type}\nDatos: ${data}`);
-//   };
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (scanned || !data) return;
 
-//   if (hasPermission === null) {
-//     return <Text>Solicitando permiso para la cámara...</Text>;
-//   }
-//   if (hasPermission === false) {
-//     return <Text>No se otorgaron permisos para la cámara</Text>;
-//   }
+    setScanned(true);
+    setQrContent(data.trim());
+    setIsLinking(true);
 
-//   return (
-//     <View style={styles.container}>
-//       <BarCodeScanner
-//         onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
-//         style={StyleSheet.absoluteFillObject}
-//         barCodeTypes={[BarCodeScanner.Constants.BarCodeType.qr]}
-//       />
+    try {
+      // Obtener el token almacenado en AsyncStorage
+      const tokenActivo = await AsyncStorage.getItem("accessToken");
       
-//       {scanned && (
-//         <Button
-//           title="Escanear otro código"
-//           onPress={() => setScanned(false)}
-//           color="#ffffff"
-//         />
-//       )}
-//     </View>
-//   );
-// }
+      if (!tokenActivo) {
+        Alert.alert("Error", "No se encontró un token de sesión válido. Por favor inicia sesión primero.");
+        setScanned(false);
+        setIsLinking(false);
+        setQrContent(null);
+        return;
+      }
 
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     flexDirection: 'column',
-//     justifyContent: 'flex-end',
-//   },
-// });
+      const success = await linkTokenToQR(data.trim(), tokenActivo);
+
+      if (success) {
+        Alert.alert("Sesión iniciada", "Token vinculado correctamente.");
+        // Navegar a la pantalla principal si es necesario
+        // navigation.navigate('Main');
+      } else {
+        Alert.alert("Error", "No se pudo vincular el token. Intenta de nuevo.");
+        setScanned(false);
+        setQrContent(null);
+      }
+    } catch (error) {
+      console.error("Error al vincular token:", error);
+      Alert.alert("Error", "Ocurrió un error al procesar el QR. Intenta de nuevo.");
+      setScanned(false);
+      setQrContent(null);
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  if (!permission?.granted) {
+    return <Text style={styles.permissionText}>Solicitando permiso de cámara...</Text>;
+  }
+
+  return (
+    <View style={styles.container}>
+      <CameraView
+        style={StyleSheet.absoluteFill}
+        barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+        onBarcodeScanned={handleBarcodeScanned}
+      />
+      <View style={styles.overlay}>
+        <View style={styles.scannerFrame}>
+          <Text style={styles.scanText}>Coloca el QR para iniciar sesión</Text>
+          {isLinking && <ActivityIndicator size="small" color="#fff" style={{ marginTop: 10 }} />}
+        </View>
+      </View>
+      {qrContent && (
+        <View style={styles.resultBox}>
+          <Text style={styles.resultLabel}>Código escaneado:</Text>
+          <Text style={styles.resultText}>{qrContent}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// Los estilos permanecen igual
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  permissionText: { flex: 1, textAlign: "center", textAlignVertical: "center", fontSize: 16 },
+  overlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
+  scannerFrame: {
+    width: FRAME_SIZE,
+    height: FRAME_SIZE,
+    borderColor: "#00FF00",
+    borderWidth: 3,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.15)",
+  },
+  scanText: {
+    color: "#fff",
+    fontSize: 16,
+    textAlign:"center",
+    fontWeight: "bold",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  resultBox: {
+    position: "absolute",
+    bottom: 60,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    padding: 16,
+    borderRadius: 10,
+  },
+  resultLabel: { color: "#aaa", fontSize: 14 },
+  resultText: { color: "#fff", fontSize: 16, marginTop: 4 },
+});

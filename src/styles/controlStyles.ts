@@ -1,0 +1,113 @@
+import { Dimensions, StyleSheet } from "react-native";
+
+const { width } = Dimensions.get("window");
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  contentContainer: {
+    paddingBottom: 30,
+  },
+  header: {
+    backgroundColor: "#22C55E",
+    paddingVertical: 16,
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  lilheader: {
+    backgroundColor: "#15803d",
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 10,
+    borderRadius: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#0f6e33",
+  },
+  headerText: {
+    color: "#fff",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  Card: {
+    margin: 10,
+    padding: 10,
+    borderRadius: 8,
+  },
+  topImage: {
+    width: "100%",
+    height: 220,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    textAlign: "center",
+    marginVertical: 12,
+    color: "#ffffff",
+    letterSpacing: 0.8,
+  },
+  switchContainer: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+  },
+  switchCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  switchLabel: {
+    fontSize: 17,
+    color: "#334155",
+    fontWeight: "600",
+    flex: 1,
+    marginRight: 15,
+  },
+  switchTrack: {
+    width: 80,
+    height: 32,
+    borderRadius: 20,
+    justifyContent: "center",
+    padding: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  switchThumb: {
+    width: 26,
+    height: 26,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 13,
+    elevation: 3,
+    zIndex: 2,
+  },
+  stateText: {
+    position: 'absolute',
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'white',
+    right: 10,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+});
+export default styles;
